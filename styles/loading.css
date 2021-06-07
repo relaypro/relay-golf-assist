@@ -1,0 +1,83 @@
+.progress-steps {
+    font-family: 'Open Sans', sans-serif;
+}
+.progress-steps > div {
+    margin-left: 39px;
+    position: relative;
+}
+.progress-steps > div.hidden {
+    display: none;
+}
+.progress-steps > div.active > h1::before {
+    border: none;
+}
+.progress-steps > div.complete > h1 {
+    color: #3EA3AC;
+    font-weight: 600;
+}
+.progress-steps > div.complete > h1 > .number {
+    background: #3EA3AC;
+    color: #fff;
+}
+.progress-steps > div:last-child > h1::before {
+    border: none;
+}
+.progress-steps > div > h1 {
+    font-size: 1em;
+    margin-left: -39px;
+    color: #222;
+    font-weight: 600;
+}
+.progress-steps > div > h1 > .number {
+    background: #16c4c7;
+    color: #fff;
+}
+.progress-steps > div > h1::before {
+    content: '';
+    position: absolute;
+    border-left: dashed 1px #d4d4d1;
+    width: 1px;
+    height: calc(100% - 27px);
+    top: 39px;
+    left: -22.5px;
+}
+.progress-steps > div > h1 > .number {
+    border-radius: 50%;
+    width: 33px;
+    height: 33px;
+    display: inline-block;
+    text-align: center;
+    line-height: 33px;
+}
+
+body {
+    font-family: Montserrat,Arial, Helvetica, sans-serif;
+    background-color:#f7f7f7;
+}
+* {box-sizing: border-box}
+
+/* Add padding to container elements */
+.container {
+    padding: 20px;
+    width:500px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border:1px solid #ccc;
+    border-radius:10px;
+    background:white;
+    text-align: left;
+-webkit-box-shadow: 2px 1px 21px -9px rgba(0,0,0,0.38);
+-moz-box-shadow: 2px 1px 21px -9px rgba(0,0,0,0.38);
+box-shadow: 2px 1px 21px -9px rgba(0,0,0,0.38);
+}
+
+img {
+    padding: 14px 0;
+    margin: 0 0;
+    border: none;
+    cursor: pointer;
+    width: 50%;
+    border-radius:10px;
+}
