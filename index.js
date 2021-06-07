@@ -50,6 +50,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         let request_long = Number(req.params.long)
         let request_location = [request_lat, request_long]
         let access_token = await get_access_token()
+        console.log("access token: " + access_token)
         let devices = get_active_relays()
         location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token)))
         location_mapping.forEach(function(map) {
