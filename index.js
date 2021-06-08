@@ -13,6 +13,8 @@ import Cookies from 'cookies'
 import { nanoid } from 'nanoid'
 import PgaDB from './schemas/pgaDB.js'
 dotenv.config()
+const relay_endpoint = `/ibot/workflow/wf_pga_3rq5sJKzGpfI4i2HYaspuB`
+const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
 
 let form = [`<div class="complete">
 <h1>
@@ -205,7 +207,7 @@ async function get_relay_location(relay_id, access_token) {
     let lat_long = null
     let response = await axios({
         method: 'get',
-        url: 'https://all-api-qa-ibot.nocell.io/ibot/device/990007560158088?subscriber_id=9bd6be6f-3b96-4b55-a807-468c3f6c428c',
+        url: `https://all-api-qa-ibot.nocell.io/ibot/device/${relay_id}?subscriber_id=9bd6be6f-3b96-4b55-a807-468c3f6c428c`,
         headers: {
         'Authorization': 'Bearer ' + access_token
         },
