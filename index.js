@@ -48,6 +48,7 @@ _server.get('/', function(req, res) {
 _server.get('/loc/:location/:lat/:long', async function(req, res) {
     let cookies = new Cookies(req, res)
     let session_id = null
+    console.log(req.headers)
     if (!req.headers.cookie) {
         //new visitor, generate a unique cookie for them
         session_id = nanoid()
