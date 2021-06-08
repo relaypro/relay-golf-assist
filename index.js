@@ -9,6 +9,8 @@ import dotenv from 'dotenv'
 import axios from 'axios'
 import distance from 'distance-from'
 import qs from 'qs'
+import Cookies from 'cookies'
+import { nanoid } from 'nanoid'
 dotenv.config()
 
 let form = [`<div class="complete">
@@ -19,6 +21,8 @@ let form = [`<div class="complete">
 A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
+
+let session_info = {}
 let pickup_name
 let cart_number
 let api_token = null
@@ -40,17 +44,27 @@ _server.get('/', function(req, res) {
 })
 
 _server.get('/loc/:location/:lat/:long', async function(req, res) {
-    res.render('loading', {form: form})
+    let cookies = new Cookies(req, res)
+    let session_id = null
+    if (!req.headers.cookie) {
+        //new visitor, generate a unique cookie for them
+        session_id = nanoid()
+        cookies.set('session_id', session_id)
+        session_info[session_id] = form
+        console.log("generating new unique session_id " + session_id)
+    } else {
+        //cookie exists, get existing cookie and populate page based on it
+        session_id = cookies.get('session_id')
+        console.log("preexisting session cookie being used: " + session_id)
+    }
+    res.render('loading', {form: session_info[session_id]})
     if (location_mapping.length === 0) {
-        console.log("WHy is it in here: " + location_mapping.length)
-        console.log("counter: " + count)
         count += 1
         let location_name = req.params.location
         let request_lat = Number(req.params.lat)
         let request_long = Number(req.params.long)
         let request_location = [request_lat, request_long]
         let access_token = await get_access_token()
-        console.log("access token: " + access_token)
         let devices = get_active_relays()
         location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token)))
         location_mapping.forEach(function(map) {
@@ -60,6 +74,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         location_mapping.sort(function(a, b) {
             return a.distance - b.distance
         })
+        console.log(location_mapping)
         eventEmitter.emit(`http_event`, location_name)
     }
 })
@@ -68,11 +83,11 @@ _server.get('/location', function(req, res) {
     res.render("loading", {form: form})
 })
 
-_server.post('/request/stage/:stage', function(req, res) {
+_server.post('/request/stage/:stage/:session_id', function(req, res) {
     let stage = req.params.stage
+    let session_id = req.params.session_id
     let html = ``
     console.log("stage: " + stage)
-    console.log(req)
     if (stage === "1") {
         pickup_name = req.body.name
         cart_number = req.body.cart_number
@@ -96,7 +111,9 @@ _server.post('/request/stage/:stage', function(req, res) {
             </div>
         `
     }
-    form.push(html)
+    console.log(session_info)
+    console.log(session_info[session_id])
+    session_info[session_id].push(html)
     res.sendStatus(200)
 })
 
