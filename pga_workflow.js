@@ -5,31 +5,18 @@ const { Event, Taps, Button, createWorkflow, notificationEvent } = pkg
 const createApp = (relay) => {
     console.log("app is hosted and running")
 
-    relay.on(`start`, async () => {
-        let id = await relay.getDeviceId();
-        console.log("The relay device ID is : " + id.toString());
-        await relayTwilio.findOne({user_id: id.toString()}, function(err, post){
-            console.log(post)
-            if (post !== null) {
-                console.log(post)
-                to_number = post.number
-                name = post.name
-            }
-        })
-        console.log(to_number)
-        if (to_number === null) {
-            await relay.say(`Who would you like to text?`)
-            const get_number = await relay.listen(['$FULLPHONENUM'])
-            console.log(get_number)
-            number = get_number.text
-            //stripped_number = number.replace(/-/g,"")
-            console.log(`phone number is ${number}`)
-            await relay.say(`What is ${number}'s name?`)
-            name = await relay.listen(["iPhone", "Leena", "Ibraheem"])
-            //name = get_number
-        }
-        await relay.say(`Tap once to send ${name} a message. Double tap to exit`)
+    relay.on(Event.START, async () => {
+        deviceName = await relay.getDeviceName()
+        deviceId = await relay.getDeviceId()
+        text = await relay.getVar(`text`)
+        channel = await relay.getVar(`channel`)
+        ts = await relay.getVar(`ts`)
+        response_url = await relay.getVar(`response_url`)
+        relay.alert(`pga`,`trigger recieved.`,['Pga'])
+    })
 
+    relay.on(`start`, async () => {
+        await relay.say("got here")
     })
 
     relay.on(`button`, async (button, taps) => {
