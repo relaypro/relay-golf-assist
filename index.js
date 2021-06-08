@@ -11,6 +11,7 @@ import distance from 'distance-from'
 import qs from 'qs'
 import Cookies from 'cookies'
 import { nanoid } from 'nanoid'
+import PgaDB from './schemas/pgaDB.js'
 dotenv.config()
 
 let form = [`<div class="complete">
@@ -22,7 +23,8 @@ A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
 
-let session_info = {}
+let session_info = {init: []}
+let session = []
 let pickup_name
 let cart_number
 let api_token = null
@@ -50,14 +52,44 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         //new visitor, generate a unique cookie for them
         session_id = nanoid()
         cookies.set('session_id', session_id)
-        session_info[session_id] = form
+        //session_info[session_id] = form
+        //session.push([session_id, form])
+        const post = new PgaDB({
+            session_id: session_id,
+            state: form,
+        })
+        await post.save(function(err){
+            if (err){
+                console.log("error while saving cookie state")
+            } else {
+                console.log("successfully saved")
+                res.render('loading', {form: form})
+            }
+        })
         console.log("generating new unique session_id " + session_id)
     } else {
         //cookie exists, get existing cookie and populate page based on it
         session_id = cookies.get('session_id')
         console.log("preexisting session cookie being used: " + session_id)
+        let html
+        await PgaDB.findOne({session_id: session_id}, function(err, post){
+            if (post !== null) {
+                html = post.state
+                res.render('loading', {form: html})
+            } else {
+                console.log("ERROR while searching for a state " + err)
+            }
+        })
     }
-    res.render('loading', {form: session_info[session_id]})
+    /*
+    let html
+    for (let i = 0; i < session.length; i++) {
+        let element = session[i]
+        if (element[0] === session_id) {
+            html = element[1]
+        }
+    }
+    */
     if (location_mapping.length === 0) {
         count += 1
         let location_name = req.params.location
@@ -83,10 +115,10 @@ _server.get('/location', function(req, res) {
     res.render("loading", {form: form})
 })
 
-_server.post('/request/stage/:stage/:session_id', function(req, res) {
+_server.post('/request/stage/:stage/:session_id', async function(req, res) {
     let stage = req.params.stage
     let session_id = req.params.session_id
-    let html = ``
+    let html = null
     console.log("stage: " + stage)
     if (stage === "1") {
         pickup_name = req.body.name
@@ -111,10 +143,26 @@ _server.post('/request/stage/:stage/:session_id', function(req, res) {
             </div>
         `
     }
-    console.log(session_info)
-    console.log(session_info[session_id])
-    session_info[session_id].push(html)
-    res.sendStatus(200)
+    /*
+    let new_arr = session_info[session_id]
+    new_arr.push(html)
+    session_info[session_id] = new_arr
+    for (let i = 0; i < session.length; i++) {
+        let element = session[i]
+        if (session[i][0] === session_id) {
+            console.log("FOUND" + session[i][0])
+            session[i][1].push(html)
+        }
+    }
+    */
+    await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
+        if (err) {
+            console.log(err)
+        } else {
+            console.log(success)
+            res.sendStatus(200)
+        }
+    })
 })
 
 _server.get('/assets/logo.png', function(req, res) {
