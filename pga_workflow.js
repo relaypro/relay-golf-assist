@@ -15,11 +15,6 @@ const createApp = (relay) => {
         relay.alert(`pga`,`trigger recieved.`,['Pga'])
     })
 
-    relay.on(`start`, async () => {
-        await relay.say("got here")
-        await relay.terminate()
-    })
-
     relay.on(`button`, async (button, taps) => {
         console.log("button clicked")
         console.log(button)
