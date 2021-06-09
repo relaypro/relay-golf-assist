@@ -25,12 +25,13 @@ A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
 
-let session = []
+let requests = []
 let pickup_name
 let cart_number
 let api_token = null
 let active_devices = []
 let location_mapping = []
+let jobs = {}
 let count = 0
 let available_flag = false
 export const eventEmitter = new EventEmitter()    
@@ -58,7 +59,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         let request_location = [request_lat, request_long]
         let access_token = await get_access_token()
         let devices = get_active_relays()
-        location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token)))
+        location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
         location_mapping.forEach(function(map) {
             let relay_location = [map.lat, map.long]
             map.distance = distance(request_location).to(relay_location).in('cm')
@@ -67,6 +68,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
             return a.distance - b.distance
         })
         console.log(location_mapping)
+        call_relays(location_mapping)
         eventEmitter.emit(`http_event`, location_name)
     }
 })
@@ -179,11 +181,14 @@ function get_active_relays() {
     return device_ids
 }
 
+function call_relays(location_mapping) {
+    
+}
 
 /*
 * This function retrieves location of each active relay
 */
-async function get_relay_location(relay_id, access_token) {
+async function get_relay_location(relay_id, access_token, loc_name) {
     let lat_long = null
     let response = await axios({
         method: 'get',
@@ -199,7 +204,8 @@ async function get_relay_location(relay_id, access_token) {
     lat_long = {
         id: relay_id,
         lat: lat,
-        long: long
+        long: long,
+        loc_name: loc_name
     }
     return lat_long
 }

@@ -6,13 +6,13 @@ const createApp = (relay) => {
     console.log("app is hosted and running")
 
     relay.on(Event.START, async () => {
-        let deviceName = await relay.getDeviceName()
-        let deviceId = await relay.getDeviceId()
-        let text = await relay.getVar(`text`)
-        let channel = await relay.getVar(`channel`)
-        let ts = await relay.getVar(`ts`)
-        let response_url = await relay.getVar(`response_url`)
-        relay.alert(`pga`,`trigger recieved.`,['Pga'])
+        //let deviceName = await relay.getDeviceName()
+        //let deviceId = await relay.getDeviceId()
+        //let text = await relay.getVar(`text`)
+        //let channel = await relay.getVar(`channel`)
+        //let ts = await relay.getVar(`ts`)
+        //let response_url = await relay.getVar(`response_url`)
+        relay.alert(`pga`,`trigger recieved.`,['990007560159094'])
     })
 
     relay.on(`button`, async (button, taps) => {
