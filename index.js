@@ -12,6 +12,7 @@ import qs from 'qs'
 import Cookies from 'cookies'
 import { nanoid } from 'nanoid'
 import PgaDB from './schemas/pgaDB.js'
+import cookieParser from 'cookie-parser'
 dotenv.config()
 const relay_endpoint = `<RELAY_WORKFLOW_ID>`
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
@@ -25,7 +26,7 @@ A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
 
-let requests = []
+let requests = {}
 let pickup_name
 let cart_number
 let api_token = null
@@ -41,6 +42,7 @@ const _server = express()
 _server.set('view engine', 'ejs')
 
 _server.use(express.urlencoded({extended: true}))
+_server.use(cookieParser())
 _server.use(express.json())
 _server.use(express.static(path.join(__dirname ,'views/index.html')))
 
@@ -49,67 +51,79 @@ _server.get('/', function(req, res) {
 })
 
 _server.get('/loc/:location/:lat/:long', async function(req, res) {
-    res.redirect(301, '/location')
-    if (location_mapping.length === 0) {
-        count += 1
-        available_flag = true
-        let location_name = req.params.location
-        let request_lat = Number(req.params.lat)
-        let request_long = Number(req.params.long)
-        let request_location = [request_lat, request_long]
-        let access_token = await get_access_token()
-        let devices = get_active_relays()
-        location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
-        location_mapping.forEach(function(map) {
-            let relay_location = [map.lat, map.long]
-            map.distance = distance(request_location).to(relay_location).in('cm')
-        })
-        location_mapping.sort(function(a, b) {
-            return a.distance - b.distance
-        })
-        console.log(location_mapping)
-        call_relays(location_mapping)
-        eventEmitter.emit(`http_event`, location_name)
+    let cookies = new Cookies(req, res)
+    let session_id = null
+    if (!req.cookies['session_id']) {
+        // if no cookies, generate cookie and pass it along to redirect
+        session_id = nanoid()
+        cookies.set('session_id', session_id)
+    } else {
+        //cookie exits, retrieve cookie and use
+        session_id = cookies.get('session_id')
     }
+    available_flag = true
+    let location_name = req.params.location
+    let request_lat = Number(req.params.lat)
+    let request_long = Number(req.params.long)
+    let request_location = [request_lat, request_long]
+    let access_token = await get_access_token()
+    let devices = get_active_relays()
+    devices.forEach(function(device) {
+        if (!(device in jobs)) {
+            jobs[device] = false
+        }
+    })
+    console.log(`${access_token} access token`)
+    res.redirect(307, '/location?session_id=' + session_id)
+    location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
+    location_mapping.forEach(function(map) {
+        let relay_location = [map.lat, map.long]
+        map.distance = distance(request_location).to(relay_location).in('cm')
+    })
+    location_mapping.sort(function(a, b) {
+        return a.distance - b.distance
+    })
+    requests[session_id] = {
+        location_details : {
+            loc_name: location_name,
+            lat: request_lat,
+            long: request_long,
+        },
+        distances: location_mapping,
+        state: 0,
+        called = []
+    }
+    console.log(location_mapping)
+    eventEmitter.emit(`http_event`, location_name)
 })
 
 _server.get('/location', async function(req, res) {
-    console.log("does it redirect here")
     let cookies = new Cookies(req, res)
-    let session_id = null
-    console.log(req.headers)
-    if (!req.headers.cookie) {
-        //new visitor, generate a unique cookie for them
-        session_id = nanoid()
-        cookies.set('session_id', session_id)
-        const post = new PgaDB({
-            session_id: session_id,
-            state: form,
-        })
-        await post.save(function(err){
-            if (err){
-                console.log("error while saving cookie state")
-            } else {
-                console.log("successfully saved")
-                res.render('loading', {form: form})
-            }
-        })
-        console.log("generating new unique session_id " + session_id)
-    } else {
-        //cookie exists, get existing cookie and populate page based on it
-        session_id = cookies.get('session_id')
-        console.log("preexisting session cookie being used: " + session_id)
-        let html
-        await PgaDB.findOne({session_id: session_id}, function(err, post){
-            if (post !== null) {
-                html = post.state
-                res.render('loading', {form: html})
-            } else {
-                console.log("ERROR while searching for a state " + err)
-            }
-        })
-    }
-    //res.render("loading", {form: form})
+    let session_id = req.query.session_id
+    session_id = cookies.get('session_id')
+    console.log("preexisting session cookie being used: " + session_id)
+    let html
+    await PgaDB.findOne({session_id: session_id}, function(err, post){
+        if (post !== null) {
+            html = post.state
+            res.render('loading', {form: html})
+        } else {
+            console.log("Saving cookie to db ")
+            const post = new PgaDB({
+                session_id: session_id,
+                state: form,
+            })
+            post.save(function(err){
+                if (err){
+                    console.log("error while saving cookie state")
+                } else {
+                    console.log("successfully saved")
+                    res.render('loading', {form: form})
+                }
+            })
+        }
+    })
+    call_relays(session_id)
 })
 
 _server.post('/request/stage/:stage/:session_id', async function(req, res) {
@@ -181,7 +195,22 @@ function get_active_relays() {
     return device_ids
 }
 
-function call_relays(location_mapping) {
+function call_relays(session_id) {
+    if (requests[session_id].state === 0) {
+        // if a relay hasn't been called for a specific request, find an available relay
+        let closest_device_arr = requests[session_id].distances
+        if (closest_device_arr.length === 0) {
+            //no active devices running
+            //do something
+        } else {
+            let closest_device_id = closest_device_arr[0].id
+            let location = closest_device_arr[0].location_details.loc_name
+            send_notification(closest_device_id, location)
+        }
+    }
+}
+
+function send_notification(device_id, location) {
     
 }
 
