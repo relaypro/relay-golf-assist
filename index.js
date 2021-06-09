@@ -25,7 +25,6 @@ A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
 
-let session_info = {init: []}
 let session = []
 let pickup_name
 let cart_number
@@ -33,6 +32,7 @@ let api_token = null
 let active_devices = []
 let location_mapping = []
 let count = 0
+let available_flag = false
 export const eventEmitter = new EventEmitter()    
 const port = process.env.PORT || 3000
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -48,6 +48,31 @@ _server.get('/', function(req, res) {
 })
 
 _server.get('/loc/:location/:lat/:long', async function(req, res) {
+    res.redirect(301, '/location')
+    if (location_mapping.length === 0) {
+        count += 1
+        available_flag = true
+        let location_name = req.params.location
+        let request_lat = Number(req.params.lat)
+        let request_long = Number(req.params.long)
+        let request_location = [request_lat, request_long]
+        let access_token = await get_access_token()
+        let devices = get_active_relays()
+        location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token)))
+        location_mapping.forEach(function(map) {
+            let relay_location = [map.lat, map.long]
+            map.distance = distance(request_location).to(relay_location).in('cm')
+        })
+        location_mapping.sort(function(a, b) {
+            return a.distance - b.distance
+        })
+        console.log(location_mapping)
+        eventEmitter.emit(`http_event`, location_name)
+    }
+})
+
+_server.get('/location', async function(req, res) {
+    console.log("does it redirect here")
     let cookies = new Cookies(req, res)
     let session_id = null
     console.log(req.headers)
@@ -55,8 +80,6 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         //new visitor, generate a unique cookie for them
         session_id = nanoid()
         cookies.set('session_id', session_id)
-        //session_info[session_id] = form
-        //session.push([session_id, form])
         const post = new PgaDB({
             session_id: session_id,
             state: form,
@@ -84,38 +107,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
             }
         })
     }
-    /*
-    let html
-    for (let i = 0; i < session.length; i++) {
-        let element = session[i]
-        if (element[0] === session_id) {
-            html = element[1]
-        }
-    }
-    */
-    if (location_mapping.length === 0) {
-        count += 1
-        let location_name = req.params.location
-        let request_lat = Number(req.params.lat)
-        let request_long = Number(req.params.long)
-        let request_location = [request_lat, request_long]
-        let access_token = await get_access_token()
-        let devices = get_active_relays()
-        location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token)))
-        location_mapping.forEach(function(map) {
-            let relay_location = [map.lat, map.long]
-            map.distance = distance(request_location).to(relay_location).in('cm')
-        })
-        location_mapping.sort(function(a, b) {
-            return a.distance - b.distance
-        })
-        console.log(location_mapping)
-        eventEmitter.emit(`http_event`, location_name)
-    }
-})
-
-_server.get('/location', function(req, res) {
-    res.render("loading", {form: form})
+    //res.render("loading", {form: form})
 })
 
 _server.post('/request/stage/:stage/:session_id', async function(req, res) {
@@ -146,18 +138,6 @@ _server.post('/request/stage/:stage/:session_id', async function(req, res) {
             </div>
         `
     }
-    /*
-    let new_arr = session_info[session_id]
-    new_arr.push(html)
-    session_info[session_id] = new_arr
-    for (let i = 0; i < session.length; i++) {
-        let element = session[i]
-        if (session[i][0] === session_id) {
-            console.log("FOUND" + session[i][0])
-            session[i][1].push(html)
-        }
-    }
-    */
     await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
         if (err) {
             console.log(err)
