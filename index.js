@@ -91,7 +91,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         },
         distances: location_mapping,
         state: 0,
-        called = []
+        called: []
     }
     console.log(location_mapping)
     eventEmitter.emit(`http_event`, location_name)
@@ -196,22 +196,57 @@ function get_active_relays() {
 }
 
 function call_relays(session_id) {
-    if (requests[session_id].state === 0) {
-        // if a relay hasn't been called for a specific request, find an available relay
-        let closest_device_arr = requests[session_id].distances
-        if (closest_device_arr.length === 0) {
-            //no active devices running
-            //do something
-        } else {
-            let closest_device_id = closest_device_arr[0].id
-            let location = closest_device_arr[0].location_details.loc_name
-            send_notification(closest_device_id, location)
+    if (requests[session_id]) {
+        if (requests[session_id].state === 0) {
+            // if a relay hasn't been called for a specific request, find an available relay
+            let closest_device_arr = requests[session_id].distances
+            if (closest_device_arr.length === 0) {
+                //no active devices running
+                //do something
+            } else {
+                console.log("CALL_RELAYS FUNCTION")
+                requests[session_id].state = 1
+                let closest_device_id = closest_device_arr[0].id
+                let location = closest_device_arr[0].loc_name
+                send_notification(closest_device_id, location, session_id)
+            }
         }
+    } else {
+        //do nothing and wait until session_id is populated since it takes ~15 seconds for the function to get location of relays
     }
 }
 
-function send_notification(device_id, location) {
-    
+async function send_notification(device_id, location, session_id) {
+    let access_token = await get_access_token()
+    console.log("IN SEND_NOTIFICATION")
+    const params = qs.stringify({
+        'subscriber_id': `<SUBSCRIBER_ID>`,
+        'user_id': device_id
+    })
+    try { 
+        const response = await axios.post(`${ibot_endpoint}${relay_endpoint}?${params}`,
+            {
+                "action": "invoke",
+                "action_args": {
+                    "text": `pickup requested in ${location}`, 
+                    "session_id": session_id,
+
+                }
+            },
+            { 
+                headers : {
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+        if (response.status == 200 || response.status == 400) {
+            console.log(`Remote trigger invoked`)
+            console.log(response.statusText)
+        } else {
+            console.log('something wrong happened within send_notification')
+        }
+    } catch (e) {
+        console.error(e)
+    }
 }
 
 /*
@@ -223,7 +258,7 @@ async function get_relay_location(relay_id, access_token, loc_name) {
         method: 'get',
         url: `https://all-api-qa-ibot.nocell.io/ibot/device/${relay_id}?subscriber_id=<SUBSCRIBER_ID>`,
         headers: {
-        'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer ' + access_token
         },
         rejectUnauthorized: false
     })
