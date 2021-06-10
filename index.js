@@ -165,6 +165,14 @@ _server.post('/request/stage/:stage/:session_id', async function(req, res) {
     })
 })
 
+_server.post('/request/reject/:session_id', function(req, res) {
+    //relay did not accept request, change state to 2
+    let session_id = req.params.session_id
+    requests[session_id].state = 2
+    console.log(requests)
+
+})
+
 _server.get('/assets/logo.png', function(req, res) {
     res.sendFile(path.join(__dirname, '/assets/logo.png'))
 })
