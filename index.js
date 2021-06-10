@@ -249,7 +249,7 @@ async function send_notification(device_id, location, session_id) {
             {
                 "action": "invoke",
                 "action_args": {
-                    "text": `pickup requested at ${location}`, 
+                    "text": location, 
                     "session_id": session_id,
 
                 }
