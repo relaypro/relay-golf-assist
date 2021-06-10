@@ -100,7 +100,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
 })
 
 _server.get('/location', async function(req, res) {
-    let cookies = new Cookies(req, res)
+    let cookies = new Cookies(req, res) 
     let session_id = req.query.session_id
     session_id = cookies.get('session_id')
     console.log("preexisting session cookie being used: " + session_id)
