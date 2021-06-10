@@ -25,6 +25,7 @@ const createApp = (relay) => {
         await relay.say("tap once to accept")
         await relay.say("double tap to reject")
     })
+
     relay.on(`button`, async (button, taps) => {
         console.log("button clicked")
         console.log(button)
@@ -40,6 +41,7 @@ const createApp = (relay) => {
                         cart_number: "14"
                     }
                 )
+                await relay.terminate()
             } else if (button.taps === `double`) { 
                 await relay.say(`Goodbye`)
                 await send_text(`+1${stripped_number}`, `Relay+ has ended the conversation`)
