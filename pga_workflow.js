@@ -29,12 +29,12 @@ const createApp = (relay) => {
     relay.on(`button`, async (button, taps) => {
         console.log("button clicked")
         console.log(button)
+        let session_id = await relay.getVar(`session_id`)
         if (button.button === `action`) {
             console.log("action button")
             if (button.taps === `single`) {
                 await relay.say("pickup request accepted")
                 let state = 1
-                let session_id = await relay.getVar(`session_id`)
                 await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
                     {
                         name: "shams",
@@ -45,7 +45,7 @@ const createApp = (relay) => {
             } else if (button.taps === `double`) { 
                 await relay.say(`Request terminated`)
                 let terminating_id = await relay.getDeviceId()
-                await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
+                await axios.post(`https://relay-pga.herokuapp.com/request/reject/${session_id}`,
                     {
                         device_id: terminating_id,
                     }
