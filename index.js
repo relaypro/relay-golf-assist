@@ -127,6 +127,7 @@ _server.get('/location', async function(req, res) {
 })
 
 _server.post('/request/stage/:stage/:session_id', async function(req, res) {
+    console.log(`post request recieved!!!!`)
     let stage = req.params.stage
     let session_id = req.params.session_id
     let html = null
@@ -228,7 +229,7 @@ async function send_notification(device_id, location, session_id) {
             {
                 "action": "invoke",
                 "action_args": {
-                    "text": `pickup requested in ${location}`, 
+                    "text": `pickup requested at ${location}`, 
                     "session_id": session_id,
 
                 }

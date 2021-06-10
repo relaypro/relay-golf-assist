@@ -1,5 +1,6 @@
 import { relay } from '@relaypro/sdk'
 import pkg from '@relaypro/sdk'
+import axios from axios
 const { Event, Taps, Button, createWorkflow, notificationEvent } = pkg
 
 const createApp = (relay) => {
@@ -20,8 +21,9 @@ const createApp = (relay) => {
         let session_id = await relay.getVar(`session_id`)
         console.log("session ID from within workflow: " + session_id)
         console.log(text)
-        await relay.say("request recieved")
         await relay.say(text)
+        await relay.say("tap once to accept")
+        await relay.say("double tap to reject")
     })
     relay.on(`button`, async (button, taps) => {
         console.log("button clicked")
@@ -29,20 +31,15 @@ const createApp = (relay) => {
         if (button.button === `action`) {
             console.log("action button")
             if (button.taps === `single`) {
-                if ( new_message ) {
-                    new_message = false
-                    await relay.say(`Press and hold to record your message`)
-                    message = await relay.listen()
-                    console.log(message)
-                    await relay.say(`Message is: ${message.text}`)
-                    await relay.say(`Tap once to send. Double tap to exit`)
-                } else if ( !new_message ) {
-                    new_message = true
-                    console.log(`Sending to: ${to_number}`)
-                    await send_text(message.text, to_number)
-                    await relay.say(`Message sent.`)
-                    message = ''
-                }
+                "pickup request accepted"
+                let state = 1
+                let session_id = await relay.getVar(`session_id`)
+                await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
+                    {
+                        name: "shams",
+                        cart_number: "14"
+                    }
+                )
             } else if (button.taps === `double`) { 
                 await relay.say(`Goodbye`)
                 await send_text(`+1${stripped_number}`, `Relay+ has ended the conversation`)
