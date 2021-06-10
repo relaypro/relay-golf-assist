@@ -1,6 +1,6 @@
 import { relay } from '@relaypro/sdk'
 import pkg from '@relaypro/sdk'
-import axios from axios
+import axios from 'axios'
 const { Event, Taps, Button, createWorkflow, notificationEvent } = pkg
 
 const createApp = (relay) => {
