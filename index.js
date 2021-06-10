@@ -177,6 +177,7 @@ _server.post('/request/reject/:session_id', function(req, res) {
     )
     requests[session_id].distances = filtered_arr
     console.log(requests)
+    console.log(requests[session_id].distances)
     res.sendStatus(200)
 })
 
@@ -221,6 +222,7 @@ function call_relays(session_id) {
                 //do something i guess
             } else {
                 console.log("CALL_RELAYS FUNCTION")
+                console.log(closest_device_arr)
                 requests[session_id].state = 1
                 let closest_device_id = closest_device_arr[0].id
                 let location = closest_device_arr[0].loc_name
