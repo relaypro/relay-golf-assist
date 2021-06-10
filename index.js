@@ -156,6 +156,8 @@ _server.post('/request/stage/:stage/:session_id', async function(req, res) {
             thank you for riding!
             </div>
         `
+        let device_id = req.params.device_id
+        jobs[device_id] = false
     }
     await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
         if (err) {
@@ -171,6 +173,7 @@ _server.post('/request/reject/:session_id', function(req, res) {
     //relay did not accept request, change state to 2
     let session_id = req.params.session_id
     let device_id = req.body.device_id
+    job[device_id] = false
     requests[session_id].state = 2
     requests[session_id].called.push(device_id)
     let closest_device_arr = requests[session_id].distances
@@ -223,12 +226,20 @@ function call_relays(session_id) {
                 //no active devices running
                 //do something i guess
             } else {
-                console.log("CALL_RELAYS FUNCTION")
-                console.log(closest_device_arr)
-                requests[session_id].state = 1
                 let closest_device_id = closest_device_arr[0].id
-                let location = closest_device_arr[0].loc_name
-                send_notification(closest_device_id, location, session_id)
+                if (!jobs[closest_device_id]) {
+                    jobs[closest_device_id] = true
+                    console.log("CALL_RELAYS FUNCTION")
+                    console.log(closest_device_arr)
+                    requests[session_id].state = 1
+                    let location = closest_device_arr[0].loc_name
+                    send_notification(closest_device_id, location, session_id)
+                } else {
+                    let filtered_arr = closest_device_arr.filter(loc =>
+                        loc.id !== closest_device_id
+                    )
+                    requests[session_id].distances = filtered_arr
+                }
             }
         }
     } else {
