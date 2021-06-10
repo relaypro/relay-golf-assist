@@ -177,6 +177,7 @@ _server.post('/request/reject/:session_id', function(req, res) {
     )
     requests[session_id].distances = filtered_arr
     console.log(requests)
+    res.sendStatus(200)
 })
 
 _server.get('/assets/logo.png', function(req, res) {
@@ -212,7 +213,7 @@ function get_active_relays() {
 
 function call_relays(session_id) {
     if (requests[session_id]) {
-        if (requests[session_id].state === 0) {
+        if (requests[session_id].state === 0 || requests[session_id].state === 2) {
             // if a relay hasn't been called for a specific request, find an available relay
             let closest_device_arr = requests[session_id].distances
             if (closest_device_arr.length === 0) {
@@ -225,8 +226,6 @@ function call_relays(session_id) {
                 let location = closest_device_arr[0].loc_name
                 send_notification(closest_device_id, location, session_id)
             }
-        } else if (requests[session_id].state === 2) {
-
         }
     } else {
         //do nothing and wait until session_id is populated since it takes ~15 seconds for the function to get location of relays
