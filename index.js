@@ -14,9 +14,11 @@ import { nanoid } from 'nanoid'
 import PgaDB from './schemas/pgaDB.js'
 import cookieParser from 'cookie-parser'
 dotenv.config()
-const relay_endpoint = `<RELAY_WORKFLOW_ID>`
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
-
+const relay_endpoints = {
+    990007560158088: `<RELAY_WORKFLOW_ID>`,
+    990007560159094: `<RELAY_WORKFLOW_ID>`
+}
 let form = [`<div class="complete">
 <h1>
   <span class="number">&#10003</span>
@@ -241,6 +243,7 @@ async function send_notification(device_id, location, session_id) {
         'subscriber_id': `<SUBSCRIBER_ID>`,
         'user_id': device_id
     })
+    let relay_endpoint = relay_endpoints[device_id]
     try { 
         const response = await axios.post(`${ibot_endpoint}${relay_endpoint}?${params}`,
             {
