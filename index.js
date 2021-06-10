@@ -168,9 +168,15 @@ _server.post('/request/stage/:stage/:session_id', async function(req, res) {
 _server.post('/request/reject/:session_id', function(req, res) {
     //relay did not accept request, change state to 2
     let session_id = req.params.session_id
+    let device_id = req.body.device_id
     requests[session_id].state = 2
+    requests[session_id].called.push(device_id)
+    let closest_device_arr = requests[session_id].distances
+    let filtered_arr = closest_device_arr.filter(loc =>
+        loc.id !== device_id
+    )
+    requests[session_id].distances = filtered_arr
     console.log(requests)
-
 })
 
 _server.get('/assets/logo.png', function(req, res) {
@@ -211,7 +217,7 @@ function call_relays(session_id) {
             let closest_device_arr = requests[session_id].distances
             if (closest_device_arr.length === 0) {
                 //no active devices running
-                //do something
+                //do something i guess
             } else {
                 console.log("CALL_RELAYS FUNCTION")
                 requests[session_id].state = 1
@@ -219,6 +225,8 @@ function call_relays(session_id) {
                 let location = closest_device_arr[0].loc_name
                 send_notification(closest_device_id, location, session_id)
             }
+        } else if (requests[session_id].state === 2) {
+
         }
     } else {
         //do nothing and wait until session_id is populated since it takes ~15 seconds for the function to get location of relays
