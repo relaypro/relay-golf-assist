@@ -15,6 +15,14 @@ const createApp = (relay) => {
         relay.alert(`pga`,`trigger recieved.`,['990007560159094'])
     })
 
+    relay.on(`start`, async () => {
+        let text = await relay.getVar(`text`)
+        let session_id = await relay.getVar(`session_id`)
+        console.log("session ID from within workflow: " + session_id)
+        console.log(text)
+        await relay.say("request recieved")
+        await relay.say(text)
+    })
     relay.on(`button`, async (button, taps) => {
         console.log("button clicked")
         console.log(button)
