@@ -173,7 +173,7 @@ _server.post('/request/reject/:session_id', function(req, res) {
     //relay did not accept request, change state to 2
     let session_id = req.params.session_id
     let device_id = req.body.device_id
-    job[device_id] = false
+    jobs[device_id] = false
     requests[session_id].state = 2
     requests[session_id].called.push(device_id)
     let closest_device_arr = requests[session_id].distances
