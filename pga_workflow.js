@@ -9,6 +9,8 @@ const createApp = (relay) => {
     let session_id
     let state
     let terminating_id
+    let name
+    let cart_number
 
     relay.on(Event.START, async () => {
         relay.alert(`pga`,`trigger recieved.`,['990007560159094'])
@@ -17,6 +19,8 @@ const createApp = (relay) => {
     relay.on(`start`, async () => {
         text = await relay.getVar(`text`)
         session_id = await relay.getVar(`session_id`)
+        name = await relay.getVar(`name`)
+        cart_number = await relay.getVar(`cart_number`)
         terminating_id = await relay.getDeviceId()
         state = 0
         console.log("session ID from within workflow: " + session_id)
@@ -38,8 +42,8 @@ const createApp = (relay) => {
                     state = 1
                     await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
                         {
-                            name: "shams",
-                            cart_number: "14"
+                            name: name,
+                            cart_number: cart_number
                         }
                     )
                 } else if (state === 1) {
@@ -47,8 +51,8 @@ const createApp = (relay) => {
                     state = 2
                     await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
                         {
-                            name: "shams",
-                            cart_number: "14",
+                            name: name,
+                            cart_number: cart_number,
                             device_id: terminating_id
                         }
                     )

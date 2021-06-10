@@ -255,6 +255,15 @@ async function send_notification(device_id, location, session_id) {
         'user_id': device_id
     })
     let relay_endpoint = relay_endpoints[device_id]
+    let name
+    let cart_number
+    if (device_id === `990007560158088`) {
+        name = `Ibraheem`
+        cart_number = `1`
+    } else {
+        name = `Brandon`
+        cart_number = `2`
+    }
     try { 
         const response = await axios.post(`${ibot_endpoint}${relay_endpoint}?${params}`,
             {
@@ -262,7 +271,8 @@ async function send_notification(device_id, location, session_id) {
                 "action_args": {
                     "text": location, 
                     "session_id": session_id,
-
+                    "name": name,
+                    "cart_number": cart_number
                 }
             },
             { 
