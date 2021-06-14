@@ -258,10 +258,10 @@ async function send_notification(device_id, location, session_id) {
     let name
     let cart_number
     if (device_id === `990007560158088`) {
-        name = `Ibraheem`
+        name = `Sai`
         cart_number = `1`
     } else {
-        name = `Brandon`
+        name = `Shakeeb`
         cart_number = `2`
     }
     try { 
