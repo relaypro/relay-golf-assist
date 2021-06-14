@@ -216,7 +216,7 @@ function get_active_relays() {
     let device_ids = ['990007560158088', '990007560159094']
     return device_ids
 }
-
+// http://relay-pga.herokuapp.com/loc/relay%20headquarters/34/-78
 function call_relays(session_id) {
     if (requests[session_id]) {
         if (requests[session_id].state === 0 || requests[session_id].state === 2) {
