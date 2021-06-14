@@ -16,7 +16,7 @@ import cookieParser from 'cookie-parser'
 dotenv.config()
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
 const relay_endpoints = {
-    990007560158088: `<RELAY_WORKFLOW_ID>`,
+    990007560158088: `/ibot/workflow/wf_pgaone_AV4JdOXTIBCKlY6zGeVAZA`,
     990007560159094: `<RELAY_WORKFLOW_ID>`
 }
 let form = [`<div class="complete">
