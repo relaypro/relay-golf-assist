@@ -10,7 +10,7 @@ If the request is accepted, the user's UI will update to show who will be pickin
 The app is live at [relay-golf-assist.herokuapp.com](http://relay-golf-assist.herokuapp.com/)
 
 ## Simplified Workflow Architecture
-![architecture diagram](https://github.com/relaypro/relay-golf-assist/blob/main/assets/system-architecture.png)
+![architecture diagram](https://github.com/relaypro/relay-golf-assist/blob/master/assets/system-architecture.png)
 ### Paths
 `/` homepage with a sample QR CODE
 
@@ -54,7 +54,7 @@ npm start
 ```
 
 ## Built with
-![technology stack](https://github.com/relaypro/relay-golf-assist/blob/main/assets/stack.png)
+![technology stack](https://github.com/relaypro/relay-golf-assist/blob/master/assets/stack.png)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
