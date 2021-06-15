@@ -15,8 +15,10 @@ import PgaDB from './schemas/pgaDB.js'
 import cookieParser from 'cookie-parser'
 dotenv.config()
 
-// add in your ibot endpoint. For the relay endpoints, just add in each device manually + their workflow urls into the
-// relay_endpoints object below 
+/*
+add in your ibot endpoint. For the relay endpoints, just add in each device manually and
+their workflow urls into the relay_endpoints object below 
+*/
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
 const relay_endpoints = {
     990007560158088: `<RELAY_WORKFLOW_ID>`,
@@ -38,19 +40,34 @@ let location_mapping = []
 let jobs = {}
 let available_flag = false
 
-export const eventEmitter = new EventEmitter()    
+/*
+* Express server config
+*/  
 const port = process.env.PORT || 3000
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const _server = express()
 _server.set('view engine', 'ejs')
-
 _server.use(express.urlencoded({extended: true}))
 _server.use(cookieParser())
 _server.use(express.json())
 _server.use(express.static(path.join(__dirname ,'views/index.html')))
-
 _server.get('/', function(req, res) {
     res.render("index")
+})
+_server.get('/assets/logo.png', function(req, res) {
+    res.sendFile(path.join(__dirname, '/assets/logo.png'))
+})
+_server.get('/assets/favicon.png', function(req, res) {
+    res.sendFile(path.join(__dirname, '/assets/favicon.png'))
+})
+_server.get('/styles/style.css', function(req, res) {
+    res.sendFile(path.join(__dirname, '/styles/style.css'))
+})
+_server.get('/styles/loading.css', function(req, res) {
+    res.sendFile(path.join(__dirname, '/styles/loading.css'))
+})
+const server = _server.listen(port, function() {
+    console.log("Web server listening on port: " + port)
 })
 
 /*
@@ -98,6 +115,19 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
     await sort_closest_relays(devices, access_token, location_name, request_location)
 })
 
+/*
+* This is the endpoint for what the user sees on his screen
+* Within the loading.ejs file, there is a script that refreshes the page every 15s
+* That means that this endpoint gets called every 15s
+* If there is an update in the state of the process, it updates on the user's screen when the screen refreshes
+*
+* For each session_id, there are states according to how far along the process the user is at
+* the states are stored in mongoDB
+* For each session_id, code looks to see if an existing state exists and populate the users UI based on that
+* If no state exists for a session_id, then populate screen with initial state (using `form` variable)
+*
+* QUERY: session_id = the idenitfier (cookie) used to target the source of the request
+*/
 _server.get('/location', async function(req, res) {
     let cookies = new Cookies(req, res) 
     let session_id = req.query.session_id
@@ -127,84 +157,6 @@ _server.get('/location', async function(req, res) {
     call_relays(session_id)
 })
 
-_server.post('/request/stage/:stage/:session_id', async function(req, res) {
-    console.log(`post request recieved!!!!`)
-    let stage = req.params.stage
-    let session_id = req.params.session_id
-    let html = null
-    console.log("stage: " + stage)
-    if (stage === "1") {
-        pickup_name = req.body.name
-        cart_number = req.body.cart_number
-        html = `
-            <div class="complete">
-            <h1>
-                <span class="number">&#10003;</span>
-                Golf cart assigned
-            </h1>
-                ${pickup_name} will pick you up shortly in golf cart #${cart_number}
-            </div>
-        `
-    } else if (stage === "2") {
-        html = `
-            <div class="complete">
-            <h1>
-            <span class="number">&#10003;</span>
-            ${pickup_name} has dropped you off
-            </h1>
-            thank you for riding!
-            </div>
-        `
-        let device_id = req.params.device_id
-        jobs[device_id] = false
-    }
-    await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
-        if (err) {
-            console.log(err)
-        } else {
-            console.log(success)
-            res.sendStatus(200)
-        }
-    })
-})
-
-_server.post('/request/reject/:session_id', function(req, res) {
-    //relay did not accept request, change state to 2
-    let session_id = req.params.session_id
-    let device_id = req.body.device_id
-    jobs[device_id] = false
-    requests[session_id].state = 2
-    requests[session_id].called.push(device_id)
-    let closest_device_arr = requests[session_id].distances
-    let filtered_arr = closest_device_arr.filter(loc =>
-        loc.id !== device_id
-    )
-    requests[session_id].distances = filtered_arr
-    console.log(requests)
-    console.log(requests[session_id].distances)
-    res.sendStatus(200)
-})
-
-_server.get('/assets/logo.png', function(req, res) {
-    res.sendFile(path.join(__dirname, '/assets/logo.png'))
-})
-_server.get('/assets/favicon.png', function(req, res) {
-    res.sendFile(path.join(__dirname, '/assets/favicon.png'))
-})
-_server.get('/styles/style.css', function(req, res) {
-    res.sendFile(path.join(__dirname, '/styles/style.css'))
-})
-_server.get('/styles/loading.css', function(req, res) {
-    res.sendFile(path.join(__dirname, '/styles/loading.css'))
-})
-
-const server = _server.listen(port, function() {
-    console.log("Web server listening on port: " + port)
-})
-
-const app = relay({server})
-app.workflow(`pga`, pga)
-
 /*
 * This function queries all relays for an account via API
 * and returns a list of their device_ids
@@ -216,7 +168,13 @@ function get_active_relays() {
     return device_ids
 }
 
-//
+/*
+* This function filters and selects the most optimal relay bsed on location and availability
+* Once a relay is selected, it calls the send_notification function to initiate the workflow on that device
+* If a device isn't available, it chooses the second closest device
+*
+* PARAM session_id = the idenitfier (cookie) used to target the source of the request
+*/
 function call_relays(session_id) {
     if (requests[session_id]) {
         if (requests[session_id].state === 0 || requests[session_id].state === 2) {
@@ -247,6 +205,9 @@ function call_relays(session_id) {
     }
 }
 
+/*
+* This function initiates the workflow on the specified device_id
+*/
 async function send_notification(device_id, location, session_id) {
     let access_token = await get_access_token()
     console.log("IN SEND_NOTIFICATION")
@@ -258,10 +219,10 @@ async function send_notification(device_id, location, session_id) {
     let name
     let cart_number
     if (device_id === `990007560158088`) {
-        name = `Sai`
+        name = `driver1`
         cart_number = `1`
     } else {
-        name = `Shakeeb`
+        name = `driver2`
         cart_number = `2`
     }
     try { 
@@ -369,5 +330,98 @@ async function sort_closest_relays(devices, access_token, location_name, request
         called: []
     }
     console.log(location_mapping)
-    eventEmitter.emit(`http_event`, location_name)
 }
+
+
+
+
+
+
+
+/*
+=
+=
+=
+BELOW ARE ENDPOINTS AND FUNCTIONS USED INTERNALLY BY THE WORKFLOW
+=
+=
+=
+*/
+
+/*
+* This is the endpoint that is internally hit by the workflow when the relay updates its state
+* This route is NOT supposed to be pinged by anything other than the workflow
+* Once the workflow goes into a new state, it send a POST request here based off of the state which is passed in as a param
+* The function below then checks the state and based off of it, saves a new state to the MongoDB so that when the user's page refreshes again, it
+*   shows up on their page
+*
+* :state = the state coming in from the relay which needs to be updated for the user
+* :session_id = the cookie to target the user that needs their state updated
+*/
+_server.post('/request/stage/:state/:session_id', async function(req, res) {
+    console.log(`post request recieved!!!!`)
+    let stage = req.params.state
+    let session_id = req.params.session_id
+    let html = null
+    console.log("stage: " + stage)
+    if (stage === "1") {
+        pickup_name = req.body.name
+        cart_number = req.body.cart_number
+        html = `
+            <div class="complete">
+            <h1>
+                <span class="number">&#10003;</span>
+                Golf cart assigned
+            </h1>
+                ${pickup_name} will pick you up shortly in golf cart #${cart_number}
+            </div>
+        `
+    } else if (stage === "2") {
+        html = `
+            <div class="complete">
+            <h1>
+            <span class="number">&#10003;</span>
+            ${pickup_name} has dropped you off
+            </h1>
+            thank you for riding!
+            </div>
+        `
+        let device_id = req.params.device_id
+        jobs[device_id] = false
+    }
+    await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
+        if (err) {
+            console.log(err)
+        } else {
+            console.log(success)
+            res.sendStatus(200)
+        }
+    })
+})
+
+/*
+* This is the endpoint that is internally hit by the workflow when the relay does not accept a pickup request
+* This route is NOT supposed to be pinged by anything other than the workflow
+* It sets the associated relay's status to available and prevents that relay from being called again
+*
+* :session_id = the cookie to target the user that needs their state updated
+*/
+_server.post('/request/reject/:session_id', function(req, res) {
+    //relay did not accept request, change state to 2
+    let session_id = req.params.session_id
+    let device_id = req.body.device_id
+    jobs[device_id] = false
+    requests[session_id].state = 2
+    requests[session_id].called.push(device_id)
+    let closest_device_arr = requests[session_id].distances
+    let filtered_arr = closest_device_arr.filter(loc =>
+        loc.id !== device_id
+    )
+    requests[session_id].distances = filtered_arr
+    console.log(requests)
+    console.log(requests[session_id].distances)
+    res.sendStatus(200)
+})
+
+const app = relay({server})
+app.workflow(`pga`, pga)
