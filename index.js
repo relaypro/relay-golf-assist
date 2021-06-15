@@ -14,11 +14,15 @@ import { nanoid } from 'nanoid'
 import PgaDB from './schemas/pgaDB.js'
 import cookieParser from 'cookie-parser'
 dotenv.config()
+
+// add in your ibot endpoint. For the relay endpoints, just add in each device manually + their workflow urls into the
+// relay_endpoints object below 
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
 const relay_endpoints = {
     990007560158088: `/ibot/workflow/wf_pgatwo_AV4JdOXTIBCKlY6zGeVAZA`,
     990007560159094: `/ibot/workflow/wf_pgaone_1iWYSdzH4bVaDRtNSxNaHB`
 }
+
 let form = [`<div class="complete">
 <h1>
   <span class="number">&#10003</span>
@@ -27,16 +31,13 @@ let form = [`<div class="complete">
 A golf cart will be assigned to you shortly
 <h1></h1>
 </div>`]
-
 let requests = {}
 let pickup_name
 let cart_number
-let api_token = null
-let active_devices = []
 let location_mapping = []
 let jobs = {}
-let count = 0
 let available_flag = false
+
 export const eventEmitter = new EventEmitter()    
 const port = process.env.PORT || 3000
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -52,7 +53,19 @@ _server.get('/', function(req, res) {
     res.render("index")
 })
 
+/*
+* This is where it all starts
+* The request comes in through this endpoint
+* We first check if a cookie exists to store the session of the user request or we generate it
+* It then polls for the closest relays and sorts them
+* We redirect to the /location endpoint as that is where we want 15s refreshing interval to happen
+* 
+* :location = Name of the location in text eg. Hole 18
+* :lat = latitude point of the location
+* :long = longitude point of the location
+*/
 _server.get('/loc/:location/:lat/:long', async function(req, res) {
+
     let cookies = new Cookies(req, res)
     let session_id = null
     if (!req.cookies['session_id']) {
@@ -63,13 +76,18 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
         //cookie exits, retrieve cookie and use
         session_id = cookies.get('session_id')
     }
+
     available_flag = true
     let location_name = req.params.location
     let request_lat = Number(req.params.lat)
     let request_long = Number(req.params.long)
     let request_location = [request_lat, request_long]
+ 
     let access_token = await get_access_token()
     let devices = get_active_relays()
+
+    // For the devices retrieved from the get_active_relays() func, 
+    // the below function adds them to an object(`jobs`) that manages the activity state of the relay
     devices.forEach(function(device) {
         if (!(device in jobs)) {
             jobs[device] = false
@@ -77,26 +95,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
     })
     console.log(`${access_token} access token`)
     res.redirect(307, '/location?session_id=' + session_id)
-    location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
-    location_mapping.forEach(function(map) {
-        let relay_location = [map.lat, map.long]
-        map.distance = distance(request_location).to(relay_location).in('cm')
-    })
-    location_mapping.sort(function(a, b) {
-        return a.distance - b.distance
-    })
-    requests[session_id] = {
-        location_details : {
-            loc_name: location_name,
-            lat: request_lat,
-            long: request_long,
-        },
-        distances: location_mapping,
-        state: 0,
-        called: []
-    }
-    console.log(location_mapping)
-    eventEmitter.emit(`http_event`, location_name)
+    await sort_closest_relays(devices, access_token, location_name, request_location)
 })
 
 _server.get('/location', async function(req, res) {
@@ -207,7 +206,7 @@ const app = relay({server})
 app.workflow(`pga`, pga)
 
 /*
-* This function queries available relays via API
+* This function queries all relays for an account via API
 * and returns a list of their device_ids
 *
 * For demo purposes, this returns a static list of device_ids
@@ -216,7 +215,8 @@ function get_active_relays() {
     let device_ids = ['990007560158088', '990007560159094']
     return device_ids
 }
-// http://relay-pga.herokuapp.com/loc/relay%20headquarters/34/-78
+
+//
 function call_relays(session_id) {
     if (requests[session_id]) {
         if (requests[session_id].state === 0 || requests[session_id].state === 2) {
@@ -336,4 +336,38 @@ async function get_access_token() {
         }),
     })
     return response.data.access_token
+}
+
+/*
+* For each relay, find location
+* compare and sort based on closest to the request location
+* update the closest relays in the requests object off of session_id (the cookie)
+* Essentially, each request will have a sorted array of closest relays associated with it
+*
+* PARAM devices = array of devices associated with an account
+* PARAM access_token = bearer token used to hit location endpoint for each relay
+* PARAM location_name = the name of the location used to identify the pickup spot
+* PARAM request_location = an array of size 2 with the lat and long of the request location eg. [34.21374, -74.1394810]
+*/
+async function sort_closest_relays(devices, access_token, location_name, request_location) {
+    location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
+    location_mapping.forEach(function(map) {
+        let relay_location = [map.lat, map.long]
+        map.distance = distance(request_location).to(relay_location).in('cm')
+    })
+    location_mapping.sort(function(a, b) {
+        return a.distance - b.distance
+    })
+    requests[session_id] = {
+        location_details : {
+            loc_name: location_name,
+            lat: request_lat,
+            long: request_long,
+        },
+        distances: location_mapping,
+        state: 0,
+        called: []
+    }
+    console.log(location_mapping)
+    eventEmitter.emit(`http_event`, location_name)
 }
