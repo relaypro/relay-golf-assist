@@ -18,11 +18,13 @@ dotenv.config()
 /*
 add in your ibot endpoint. For the relay endpoints, just add in each device manually and
 their workflow urls into the relay_endpoints object below 
+
+as an example, the wf_id should look like: `/ibot/workflow/wf_wfname_1iWuhILUGHnKJYF`
 */
 const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
 const relay_endpoints = {
-    990007560158088: `<RELAY_WORKFLOW_ID>`,
-    990007560159094: `<RELAY_WORKFLOW_ID>`
+    990007560158088: process.env.RELAY_88_WF_ID,
+    990007560159094: process.env.RELAY_94_WF_ID,
 }
 
 let form = [`<div class="complete">
@@ -212,7 +214,7 @@ async function send_notification(device_id, location, session_id) {
     let access_token = await get_access_token()
     console.log("IN SEND_NOTIFICATION")
     const params = qs.stringify({
-        'subscriber_id': `<SUBSCRIBER_ID>`,
+        'subscriber_id': process.env.SUBSCRIBER_ID,
         'user_id': device_id
     })
     let relay_endpoint = relay_endpoints[device_id]
@@ -257,9 +259,10 @@ async function send_notification(device_id, location, session_id) {
 */
 async function get_relay_location(relay_id, access_token, loc_name) {
     let lat_long = null
+    let sub_ID = process.env.SUBSCRIBER_ID
     let response = await axios({
         method: 'get',
-        url: `https://all-api-qa-ibot.nocell.io/ibot/device/${relay_id}?subscriber_id=<SUBSCRIBER_ID>`,
+        url: `https://all-api-qa-ibot.nocell.io/ibot/device/${relay_id}?subscriber_id=${sub_id}`,
         headers: {
             'Authorization': 'Bearer ' + access_token
         },
