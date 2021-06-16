@@ -21,7 +21,7 @@ their workflow urls into the relay_endpoints object below
 
 as an example, the wf_id should look like: `/ibot/workflow/wf_wfname_1iWuhILUGHnKJYF`
 */
-const ibot_endpoint = `https://all-api-qa-ibot.nocell.io`
+const ibot_endpoint = process.env.IBOT_ENDPOINT
 const relay_endpoints = {
     990007560158088: process.env.RELAY_88_WF_ID,
     990007560159094: process.env.RELAY_94_WF_ID,
@@ -166,7 +166,7 @@ _server.get('/location', async function(req, res) {
 * For demo purposes, this returns a static list of device_ids
 */
 function get_active_relays() {
-    let device_ids = ['990007560158088', '990007560159094']
+    let device_ids = [process.env.RELAY_88_ID, process.env.RELAY_94_ID]
     return device_ids
 }
 
@@ -220,7 +220,7 @@ async function send_notification(device_id, location, session_id) {
     let relay_endpoint = relay_endpoints[device_id]
     let name
     let cart_number
-    if (device_id === `990007560158088`) {
+    if (device_id === process.env.RELAY_94_ID) {
         name = `driver1`
         cart_number = `1`
     } else {
@@ -262,7 +262,7 @@ async function get_relay_location(relay_id, access_token, loc_name) {
     let sub_ID = process.env.SUBSCRIBER_ID
     let response = await axios({
         method: 'get',
-        url: `https://all-api-qa-ibot.nocell.io/ibot/device/${relay_id}?subscriber_id=${sub_id}`,
+        url: `${process.env.IBOT_ENDPOINT}/ibot/device/${relay_id}?subscriber_id=${sub_id}`,
         headers: {
             'Authorization': 'Bearer ' + access_token
         },
@@ -288,12 +288,12 @@ async function get_access_token() {
         method: 'post',
         headers: {
             'content-type' : 'application/x-www-form-urlencoded', 
-            'Authorization': 'Basic UlNjcVNoNGs6TFU2NE1FSjhCeWlqM0ozOA=='
+            'Authorization': `Basic ${process.env.TOKEN}`
         },
-        url: 'https://auth.republicdev.info/oauth2/token',
+        url: process.env.OAUTH_ENDPOINT,
         data: qs.stringify({
             grant_type: 'password',
-            client_id: 'RScqSh4k',
+            client_id: process.env.CLIENT_ID,
             scope: 'openid',
             username: process.env.TOKEN_USERNAME,
             password: process.env.TOKEN_PASS

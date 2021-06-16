@@ -1,6 +1,8 @@
 import { relay } from '@relaypro/sdk'
 import pkg from '@relaypro/sdk'
 import axios from 'axios'
+import dotenv from 'dotenv'
+dotenv.config()
 const { Event, Taps, Button, createWorkflow, notificationEvent } = pkg
 
 const createApp = (relay) => {
@@ -13,7 +15,7 @@ const createApp = (relay) => {
     let cart_number
 
     relay.on(Event.START, async () => {
-        relay.alert(`pga`,`trigger recieved.`,['990007560159094'])
+        relay.alert(`pga`,`trigger recieved.`,[`<your_relay_id>`])
     })
 
     relay.on(`start`, async () => {
@@ -31,6 +33,7 @@ const createApp = (relay) => {
     })
 
     relay.on(`button`, async (button, taps) => {
+        server_url = process.env.SERVER_URL
         console.log("button clicked")
         console.log(button)
         let session_id = await relay.getVar(`session_id`)
@@ -40,7 +43,7 @@ const createApp = (relay) => {
                 if (state === 0) {
                     await relay.say("pickup request accepted")
                     state = 1
-                    await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
+                    await axios.post(`${server_url}/request/stage/${state}/${session_id}`,
                         {
                             name: name,
                             cart_number: cart_number
@@ -49,7 +52,7 @@ const createApp = (relay) => {
                 } else if (state === 1) {
                     await relay.say("drop off request completed")
                     state = 2
-                    await axios.post(`https://relay-pga.herokuapp.com/request/stage/${state}/${session_id}`,
+                    await axios.post(`${server_url}/request/stage/${state}/${session_id}`,
                         {
                             name: name,
                             cart_number: cart_number,
@@ -62,7 +65,7 @@ const createApp = (relay) => {
             } else if (button.taps === `double`) { 
                 if (state === 0) {
                     await relay.say(`Request terminated`)
-                    await axios.post(`https://relay-pga.herokuapp.com/request/reject/${session_id}`,
+                    await axios.post(`${server_url}/request/reject/${session_id}`,
                         {
                             device_id: terminating_id,
                         }
