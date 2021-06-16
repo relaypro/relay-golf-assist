@@ -1,9 +1,9 @@
 
 # Relay Golf Assist Workflow
 
-The idea behind it: A user is able go to a predefined golf stop and request a golf cart to pick them up and drop them off where needed.
+The idea behind it: A user is able go to a predefined golf cart stop and request a golf cart to pick them up and drop them off where needed.
 
-The user would scan a QR located at a golf stop and that would initiate a request to find the closest golf cart via Relay's location mapping functionality. That Relay would then be sent a request on where to pick the user up and an option to accept or decline the request. 
+The user would scan a QR located at a golf cart stop and that would initiate a request to find the closest golf cart via Relay's location mapping functionality. That Relay would then be sent a request on where to pick the user up and an option to accept or decline the request. 
 If the request is declined, the second closest relay will be polled and so on until a relay accepts the request. 
 If the request is accepted, the user's UI will update to show who will be picking them up. The golf cart driver will then drop off the user and will complete the request. 
 
