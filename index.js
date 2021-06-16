@@ -243,7 +243,7 @@ async function send_notification(device_id, location, session_id) {
                     'Authorization': 'Bearer ' + access_token
                 }
             })
-        if (response.status == 200 || response.status == 400) {
+        if (response.status == 200) {
             console.log(`Remote trigger invoked`)
             console.log(response.statusText)
         } else {
