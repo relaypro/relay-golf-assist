@@ -114,7 +114,7 @@ _server.get('/loc/:location/:lat/:long', async function(req, res) {
     })
     console.log(`${access_token} access token`)
     res.redirect(307, '/location?session_id=' + session_id)
-    await sort_closest_relays(devices, access_token, location_name, request_location)
+    await sort_closest_relays(devices, access_token, location_name, request_location, session_id)
 })
 
 /*
@@ -259,7 +259,7 @@ async function send_notification(device_id, location, session_id) {
 */
 async function get_relay_location(relay_id, access_token, loc_name) {
     let lat_long = null
-    let sub_ID = process.env.SUBSCRIBER_ID
+    let sub_id = process.env.SUBSCRIBER_ID
     let response = await axios({
         method: 'get',
         url: `${process.env.IBOT_ENDPOINT}/ibot/device/${relay_id}?subscriber_id=${sub_id}`,
@@ -313,7 +313,7 @@ async function get_access_token() {
 * PARAM location_name = the name of the location used to identify the pickup spot
 * PARAM request_location = an array of size 2 with the lat and long of the request location eg. [34.21374, -74.1394810]
 */
-async function sort_closest_relays(devices, access_token, location_name, request_location) {
+async function sort_closest_relays(devices, access_token, location_name, request_location, session_id) {
     location_mapping = await Promise.all(devices.map(x => get_relay_location(x, access_token, location_name)))
     location_mapping.forEach(function(map) {
         let relay_location = [map.lat, map.long]
@@ -322,6 +322,8 @@ async function sort_closest_relays(devices, access_token, location_name, request
     location_mapping.sort(function(a, b) {
         return a.distance - b.distance
     })
+    let request_lat = request_location[0]
+    let request_long = request_location[1]
     requests[session_id] = {
         location_details : {
             loc_name: location_name,
