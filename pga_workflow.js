@@ -33,8 +33,7 @@ const createApp = (relay) => {
     })
 
     relay.on(`button`, async (button, taps) => {
-        console.log(process.env.SERVER_URL)
-        server_url = process.env.SERVER_URL 
+        let server_url = process.env.SERVER_URL 
         console.log("button clicked")
         console.log(button)
         let session_id = await relay.getVar(`session_id`)
