@@ -221,10 +221,10 @@ async function send_notification(device_id, location, session_id) {
     let name
     let cart_number
     if (device_id === process.env.RELAY_94_ID) {
-        name = `driver1`
+        name = `Shakeeb`
         cart_number = `1`
     } else {
-        name = `driver2`
+        name = `Brandon`
         cart_number = `2`
     }
     try { 
@@ -393,6 +393,7 @@ _server.post('/request/stage/:state/:session_id', async function(req, res) {
         `
         let device_id = req.params.device_id
         jobs[device_id] = false
+        
     }
     await PgaDB.findOneAndUpdate({session_id: session_id}, { $addToSet: { state: html  } }, function(err, success){
         if (err) {
