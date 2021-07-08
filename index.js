@@ -22,10 +22,6 @@ their workflow urls into the relay_endpoints object below
 as an example, the wf_id should look like: `/ibot/workflow/wf_wfname_1iWuhILUGHnKJYF`
 */
 const ibot_endpoint = process.env.IBOT_ENDPOINT
-const relay_endpoints = {
-    990007560158088: process.env.RELAY_88_WF_ID,
-    990007560159094: process.env.RELAY_94_WF_ID,
-}
 
 let form = [`<div class="complete">
 <h1>
@@ -217,15 +213,17 @@ async function send_notification(device_id, location, session_id) {
         'subscriber_id': process.env.SUBSCRIBER_ID,
         'user_id': device_id
     })
-    let relay_endpoint = relay_endpoints[device_id]
+    let relay_endpoint
     let name
     let cart_number
     if (device_id === process.env.RELAY_94_ID) {
         name = `Shakeeb`
         cart_number = `1`
+        relay_endpoint = `/ibot/workflow/wf_pgatwo_AV4JdOXTIBCKlY6zGeVAZA`
     } else {
         name = `Brandon`
         cart_number = `2`
+        relay_endpoint = `/ibot/workflow/wf_pgaone_1iWYSdzH4bVaDRtNSxNaHB`
     }
     try { 
         const response = await axios.post(`${ibot_endpoint}${relay_endpoint}?${params}`,
